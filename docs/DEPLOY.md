@@ -23,13 +23,13 @@ git push -u origin HEAD
 
 1. В Vercel откройте **Add New → Project**, подключите GitHub и импортируйте репозиторий.
 2. Root Directory — корень репозитория. Framework — Vite. Install Command — `npm ci`. Build Command — `npm run build`. Output Directory — `dist`. Выберите поддерживаемый Node.js 22 или 24.
-3. Для демо не добавляйте AI-ключ. Для полного режима внесите `OPENAI_API_KEY`, `OPENAI_TRANSCRIBE_MODEL=whisper-1`, `OPENAI_ANALYSIS_MODEL=gpt-4.1-mini` в серверные Environment Variables проекта. `VITE_BASE_PATH=/`. После появления URL задайте `APP_ORIGIN` точно, например `https://your-project.vercel.app`, и повторно разверните проект. Не включайте URL preview-deployment в production-origin случайно.
+3. Для демо не добавляйте AI-ключ. Для облачного режима внесите `YANDEX_API_KEY` сервисного аккаунта и `YANDEX_FOLDER_ID` для анализа в серверные Environment Variables проекта. Остальные настройки и значения по умолчанию перечислены в `.env.example` и README. `VITE_BASE_PATH=/` — единственная публичная настройка пути; секрет никогда не получает префикс `VITE_`. После появления URL задайте `APP_ORIGIN` точно, например `https://your-project.vercel.app`, и повторно разверните проект. Не включайте URL preview-deployment в production-origin случайно.
 4. Если включаете платный AI, ограничьте доступ к deployment и расходы в аккаунте провайдера. В приложении нет пользовательской авторизации; CORS/origin-проверка не защищает от прямых серверных запросов.
 5. Запустите Deploy. Проверьте, что созданы функции `/api/analyze` и `/api/transcribe`. `vercel.json` задаёт сборку, статические заголовки и максимум 120 секунд для функций. Если тариф/настройки аккаунта не допускают такой duration, уменьшите его и серверные/клиентские таймауты согласованно.
 6. Откройте главную, демо, экспорт. Обновите URL `/#/project/<id>` в том же браузере. Используется HashRouter, поэтому rewrite всех URL на index не требуется и не перехватывает API.
-7. Без ключа POST на AI возвращает 503; GET возвращает 405. С ключом проверьте маленькую непубличную тестовую запись и убедитесь, что таймкоды и источники корректны. Это обязательная отдельная проверка перед использованием на реальных встречах.
+7. Без ключа валидный POST на AI возвращает 503; GET возвращает 405. С ключом проверьте тестовую запись до 30 секунд и 1 МБ, WAV PCM 16-bit mono или OggOpus mono. SpeechKit v1 возвращает один сегмент с приблизительным временем, без диаризации. Проверьте текст и анализ требований отдельно: успешное распознавание сохраняется даже при ошибке анализа. Живой вызов не входит в текущий mock-прогон.
 
-Vercel поддерживает Node.js/TypeScript-функции в `api/` и Node request/response handlers: [официальная документация](https://vercel.com/docs/functions/runtimes/node-js). Ограничения payload и времени определяются платформой: [Vercel Functions Limits](https://vercel.com/docs/functions/limitations). Здесь лимит медиа 3 МБ выбран консервативно для base64 JSON, чтобы оставить запас до лимита тела запроса. Большие записи требуют прямого upload и фоновой очереди.
+Vercel поддерживает Node.js/TypeScript-функции в `api/` и Node request/response handlers: [официальная документация](https://vercel.com/docs/functions/runtimes/node-js). Ограничения payload и времени определяются платформой: [Vercel Functions Limits](https://vercel.com/docs/functions/limitations). Здесь синхронное аудио ограничено 1 000 000 байт и 30 секундами из-за режима SpeechKit; base64 увеличивает тело JSON. Таймаут одного облачного запроса — до 55 секунд, анализ может сделать один повтор, поэтому функция должна допускать оба запроса. Большие записи отклоняются с `ASYNC_REQUIRED`, очередь не запущена: [план асинхронного режима](ASYNC_TRANSCRIPTION.md).
 
 ## 3. GitHub Pages: статическое демо
 
@@ -38,7 +38,7 @@ Vercel поддерживает Node.js/TypeScript-функции в `api/` и N
 3. Workflow установит `VITE_BASE_PATH=/<repository-name>/` (для репозитория `*.github.io` — `/`), выполнит `npm ci`, проверки и сборку, отправит только `dist` через официальный Pages artifact.
 4. Откройте URL deployment. Нажмите демо и обновите hash-маршрут. Файлы ресурсов и manifest должны загружаться из base path. Этот вариант не содержит серверных функций; AI-обработка покажет сообщение о недоступном сервере.
 
-Никаких секретов OpenAI в workflow Pages добавлять нельзя. Для локального воспроизведения сборки с подпутём в PowerShell:
+Никаких секретов Yandex в workflow Pages добавлять нельзя. Для локального воспроизведения сборки с подпутём в PowerShell:
 
 ```powershell
 $env:VITE_BASE_PATH='/specflow-hackathon/'

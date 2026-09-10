@@ -1,7 +1,7 @@
 export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
 // Transient handoff from the home upload to the player; never serialized.
 export const sessionMedia = new Map<string, File>();
-export const MAX_AI_MEDIA_BYTES = 3 * 1024 * 1024;
+export { SPEECHKIT_SYNC } from '../domain/transcription';
 export const MAX_TEXT_BYTES = 512 * 1024;
 const media: Record<string, string[]> = {
   mp3: ['audio/mpeg', 'audio/mp3'],

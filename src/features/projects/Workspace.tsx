@@ -34,7 +34,7 @@ import { Inspector } from '../requirements/Inspector';
 import { ImportDialog, NO_AI_MESSAGE } from '../upload/ImportDialog';
 import { Dialog } from '../../components/Dialog';
 import { download, exportMarkdown, exportJSON, exportDocx } from '../../services/export';
-import { aiAnalyze, aiTranscribe } from '../../services/ai';
+import { aiAnalyze, aiTranscribe, CloudError } from '../../services/ai';
 import { sessionMedia } from '../../services/files';
 import { registerSpecTool } from '../../services/webmcp';
 type Tab = 'requirements' | 'scenarios' | 'roles' | 'questions' | 'conflicts';
@@ -188,21 +188,34 @@ function WorkspaceContent({ initial }: { initial: Project }) {
     setStage(file && !p.segments.length ? 'Транскрибация' : 'Анализ');
     const controller = new AbortController();
     abort.current = controller;
+    let working = p;
     try {
       let segments = p.segments;
       if (!segments.length) {
         if (!file) throw new Error('Добавьте запись или транскрипцию.');
         segments = await aiTranscribe(file, controller.signal);
+        controller.signal.throwIfAborted();
+        if (repository.list().find((x) => x.id === p.id)?.updatedAt !== p.updatedAt)
+          throw new Error('Проект изменён во время распознавания. Обновите страницу.');
+        working = ProjectSchema.parse(
+          projectReducer(p, {
+            type: 'patch',
+            patch: { segments, mode: 'ai', processingStatus: 'uploaded' },
+          }),
+        );
+        repository.save(working);
+        setP(working);
       }
       setStage('Анализ');
       const analysis = await aiAnalyze(segments, controller.signal);
-      if (repository.list().find((x) => x.id === p.id)?.updatedAt !== p.updatedAt) {
+      controller.signal.throwIfAborted();
+      if (repository.list().find((x) => x.id === p.id)?.updatedAt !== working.updatedAt) {
         throw new Error(
           'Проект изменён во время обработки. Обновите страницу, чтобы сохранить новые правки.',
         );
       }
       const next = ProjectSchema.parse(
-        projectReducer(p, {
+        projectReducer(working, {
           type: 'patch',
           patch: { ...analysis, segments, mode: 'ai', processingStatus: 'ready' },
         }),
@@ -218,9 +231,13 @@ function WorkspaceContent({ initial }: { initial: Project }) {
       setError(
         controller.signal.aborted
           ? 'Обработка отменена. Исходные данные сохранены.'
-          : (e as Error).message,
+          : (working !== p ? 'Распознанная транскрипция сохранена. ' : '') + (e as Error).message,
       );
-      setStage('Ошибка');
+      setStage(
+        e instanceof CloudError && e.code === 'ASYNC_REQUIRED'
+          ? 'Нужна асинхронная обработка'
+          : 'Ошибка',
+      );
     } finally {
       setBusy('');
       abort.current = null;
@@ -836,13 +853,23 @@ function WorkspaceContent({ initial }: { initial: Project }) {
           }}
         >
           <p>
-            Транскрипция, а при распознавании — запись, будут отправлены серверу приложения и
-            OpenAI. Результат остаётся черновиком. Нужен настроенный серверный провайдер.
+            Транскрипция, а при распознавании — запись, будут отправлены серверу приложения и Yandex
+            SpeechKit / Yandex AI Studio. Результат остаётся черновиком. Ключ находится только на
+            сервере.
           </p>
           <p className="muted">
             Текущие извлечённые элементы заменятся результатом анализа. Для сохранения предыдущих
-            правок сначала экспортируйте проект. Медиа для AI — до 3 МБ; OGG и MOV нужно
-            преобразовать в поддерживаемый аудиоформат.
+            правок сначала экспортируйте проект. Распознавание: WAV PCM 16-bit mono или OggOpus
+            mono, до 1 МБ и 30 секунд. Длительность проверяется на сервере.
+          </p>
+          <p className="notice">
+            Длинные записи требуют асинхронной обработки SpeechKit. Она пока не подключена: файлы не
+            ставятся в очередь и не обрабатываются в фоне. Можно добавить готовую транскрипцию.
+          </p>
+          <p className="muted">
+            SpeechKit v1 возвращает текст без таймкодов слов и разделения говорящих. Время такого
+            источника отмечается как приблизительное. Точные таймкоды сохраняются для SRT/VTT и
+            учебного демо.
           </p>
           <label className="checkbox">
             <input
@@ -854,6 +881,7 @@ function WorkspaceContent({ initial }: { initial: Project }) {
           </label>
           {stage && (
             <div className="processing" role="status">
+              {stage === 'Нужна асинхронная обработка' && <span>{stage}</span>}
               {['Загрузка', 'Транскрибация', 'Анализ', 'Готово'].map((step) => (
                 <span className={stage === step ? 'active' : ''} key={step}>
                   {step}

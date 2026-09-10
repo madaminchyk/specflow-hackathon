@@ -29,18 +29,15 @@ export async function readBody(req: IncomingMessage & { body?: unknown }) {
     throw new ProviderError(400, 'Некорректный JSON.');
   }
 }
-export function errorResponse(error: unknown): { status: number; message: string } {
-  if (error instanceof ProviderError) return { status: error.status, message: error.message };
+export function errorResponse(error: unknown): { status: number; message: string; code?: string } {
+  if (error instanceof ProviderError)
+    return { status: error.status, message: error.message, code: error.code };
   if (error instanceof z.ZodError)
     return { status: 400, message: 'Данные запроса не прошли проверку.' };
   const e = error as { status?: number; name?: string };
   if (e?.status === 429)
     return { status: 429, message: 'Превышен лимит AI-провайдера. Повторите позже.' };
-  if (
-    e?.name === 'APIConnectionTimeoutError' ||
-    e?.name === 'TimeoutError' ||
-    e?.name === 'AbortError'
-  )
+  if (e?.name === 'TimeoutError' || e?.name === 'AbortError')
     return {
       status: 504,
       message: 'Время обработки истекло. Сократите запись или добавьте готовую транскрипцию.',
@@ -85,7 +82,6 @@ export async function handle(
   }
   try {
     const body = await readBody(req);
-    const provider = createProvider();
     const signal = AbortSignal.timeout(115000);
     if (kind === 'analyze') {
       const { segments } = z
@@ -93,8 +89,15 @@ export async function handle(
         .parse(body);
       if (segments.reduce((n, s) => n + s.text.length, 0) > MAX_TEXT)
         throw new ProviderError(413, 'Транскрипция превышает 180 000 символов.');
-      send(200, await provider.extract(segments, signal));
+      send(200, await createProvider().extract(segments, signal));
     } else {
+      const mode = z.object({ mode: z.enum(['sync', 'async']).default('sync') }).parse(body).mode;
+      if (mode === 'async')
+        throw new ProviderError(
+          501,
+          'Асинхронная обработка длинных записей пока не подключена. Задача не создана, файл не отправлен. Добавьте готовую транскрипцию.',
+          'ASYNC_NOT_CONFIGURED',
+        );
       const { name, type, data } = z
         .object({
           name: z.string().min(1).max(250),
@@ -108,11 +111,14 @@ export async function handle(
         .parse(body);
       send(
         200,
-        await provider.transcribe({ name, type, bytes: Buffer.from(data, 'base64') }, signal),
+        await createProvider().transcribe(
+          { name, type, bytes: Buffer.from(data, 'base64') },
+          signal,
+        ),
       );
     }
   } catch (e) {
     const error = errorResponse(e);
-    send(error.status, { error: error.message });
+    send(error.status, { error: error.message, ...(error.code ? { code: error.code } : {}) });
   }
 }

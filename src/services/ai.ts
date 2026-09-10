@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { SegmentSchema, validateAnalysis, type Segment } from '../domain/model';
-import { MAX_AI_MEDIA_BYTES } from './files';
+import { SPEECHKIT_SYNC, type CloudErrorCode } from '../domain/transcription';
+export class CloudError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: CloudErrorCode,
+  ) {
+    super(message);
+  }
+}
 async function request(path: string, body: unknown, signal: AbortSignal) {
   let response: Response;
   try {
@@ -25,9 +34,11 @@ async function request(path: string, body: unknown, signal: AbortSignal) {
     );
   }
   if (!response.ok) {
-    const parsed = z.object({ error: z.string() }).safeParse(result);
-    throw new Error(
+    const parsed = z.object({ error: z.string(), code: z.string().optional() }).safeParse(result);
+    throw new CloudError(
       parsed.success ? parsed.data.error : 'Не удалось обработать материалы встречи.',
+      response.status,
+      parsed.success ? (parsed.data.code as CloudErrorCode) : undefined,
     );
   }
   return result;
@@ -36,9 +47,17 @@ export async function aiAnalyze(segments: Segment[], signal: AbortSignal) {
   return validateAnalysis(await request('/api/analyze', { segments }, signal), segments);
 }
 export async function aiTranscribe(file: File, signal: AbortSignal) {
-  if (file.size > MAX_AI_MEDIA_BYTES)
-    throw new Error(
-      'Для AI-распознавания файл должен быть не больше 3 МБ. Сожмите запись или добавьте готовую транскрипцию.',
+  if (file.size > SPEECHKIT_SYNC.maxBytes)
+    throw new CloudError(
+      'SpeechKit: максимум 1 МБ и 30 секунд. Для большой записи нужна асинхронная обработка, которая пока не подключена. Добавьте готовую транскрипцию или короткий фрагмент.',
+      413,
+      'ASYNC_REQUIRED',
+    );
+  if (!/\.(wav|ogg)$/i.test(file.name))
+    throw new CloudError(
+      'Для SpeechKit подготовьте WAV PCM 16-bit mono или OggOpus mono. Остальные форматы доступны для локального воспроизведения.',
+      415,
+      'UNSUPPORTED_AUDIO',
     );
   const data = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
