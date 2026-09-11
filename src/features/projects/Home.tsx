@@ -233,18 +233,22 @@ export function Home() {
           <h3>Начните с материалов своей встречи</h3>
           <p>{AUDIO_UPLOAD_HINT}</p>
           <p className="muted">Готовая транскрипция: TXT, MD, SRT, VTT до 512 КБ.</p>
-          <p>
+          <div className="sample-download-card">
             <a
+              className="sample-download-button"
               href={import.meta.env.BASE_URL + 'samples/specflow-demo-30s.wav'}
               download="specflow-demo-30s.wav"
             >
-              Скачать тестовую запись для проверки
+              Скачать тестовую WAV-запись
             </a>
-          </p>
+            <p className="sample-download-meta">
+              28,6 сек · 915 КБ · уже проверена через SpeechKit
+            </p>
+            <p>Скачайте файл и загрузите его обратно в приложение для live-проверки AI.</p>
+          </div>
           <p className="muted">
-            Проверенный WAV: 28,6 секунды, 915 КБ. Скачайте файл, загрузите его и нажмите
-            «AI-обработка» для live-проверки SpeechKit. Встроенный демо-проект — подготовленная
-            учебная транскрипция и сценарий для быстрого знакомства с продуктом.
+            Встроенный демо-проект — подготовленная учебная транскрипция и сценарий для быстрого
+            знакомства с продуктом.
           </p>
           <button disabled={busy} onClick={() => input.current?.click()}>
             {busy ? 'Чтение…' : 'Выбрать файл встречи'}
