@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { z } from 'zod';
-import { SegmentSchema } from '../src/domain/model';
-import { MAX_TEXT } from '../src/services/analysis';
-import { createProvider, ProviderError } from './providers';
+import { SegmentSchema } from '../src/domain/model.js';
+import { MAX_TEXT } from '../src/services/analysis.js';
+import { createProvider, ProviderError } from './providers.js';
 const MAX_BODY = 4_300_000;
 export async function readBody(req: IncomingMessage & { body?: unknown }) {
   if (req.body !== undefined) {

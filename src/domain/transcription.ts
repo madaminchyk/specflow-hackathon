@@ -1,4 +1,4 @@
-import type { Segment } from './model';
+import type { Segment } from './model.js';
 
 // Public capabilities only. Credentials and configurable model settings stay on the server.
 export const SPEECHKIT_SYNC = {

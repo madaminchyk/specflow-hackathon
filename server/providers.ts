@@ -9,12 +9,12 @@ import {
   newRequirement,
   type Segment,
   type Analysis,
-} from '../src/domain/model';
-import { SPEECHKIT_SYNC } from '../src/domain/transcription';
-import { prepareAudio, type AudioInput } from './audio';
-import { ProviderError } from './errors';
-export { ProviderError } from './errors';
-export type { AsyncTranscriptionProvider, TranscriptionJob } from '../src/domain/transcription';
+} from '../src/domain/model.js';
+import { SPEECHKIT_SYNC } from '../src/domain/transcription.js';
+import { prepareAudio, type AudioInput } from './audio.js';
+import { ProviderError } from './errors.js';
+export { ProviderError } from './errors.js';
+export type { AsyncTranscriptionProvider, TranscriptionJob } from '../src/domain/transcription.js';
 export interface TranscriptionProvider {
   transcribe(file: AudioInput, signal?: AbortSignal): Promise<Segment[]>;
 }

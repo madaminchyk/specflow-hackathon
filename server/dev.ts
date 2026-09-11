@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { createServer } from 'node:http';
-import { handle } from './http';
+import { handle } from './http.js';
 createServer((req, res) => {
   const path = req.url?.split('?')[0];
   if (path === '/api/analyze' || path === '/api/transcribe') {

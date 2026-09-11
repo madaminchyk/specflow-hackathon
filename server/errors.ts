@@ -1,4 +1,4 @@
-import type { CloudErrorCode } from '../src/domain/transcription';
+import type { CloudErrorCode } from '../src/domain/transcription.js';
 export class ProviderError extends Error {
   constructor(
     public status: number,

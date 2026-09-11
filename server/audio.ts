@@ -1,5 +1,5 @@
-import { SPEECHKIT_SYNC } from '../src/domain/transcription';
-import { ProviderError } from './errors';
+import { SPEECHKIT_SYNC } from '../src/domain/transcription.js';
+import { ProviderError } from './errors.js';
 export type AudioInput = { name: string; type: string; bytes: Uint8Array };
 export type PreparedAudio = {
   body: Uint8Array;

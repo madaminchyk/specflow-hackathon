@@ -29,9 +29,15 @@ async function request(path: string, body: unknown, signal: AbortSignal) {
   try {
     result = await response.json();
   } catch {
-    throw new Error(
-      'AI-сервер недоступен. Настройте серверный провайдер или используйте локальный разбор.',
-    );
+    const hint =
+      response.status === 404
+        ? 'API-маршрут не найден. Проверьте Root Directory проекта и наличие функций api в Vercel.'
+        : response.status === 401 || response.status === 403
+          ? 'Доступ к API закрыт. Проверьте Deployment Protection и источник запроса.'
+          : response.status >= 500
+            ? 'Серверная функция не запустилась или завершилась ошибкой. Проверьте Runtime Logs и серверные настройки Vercel.'
+            : 'Вместо JSON получена страница. Проверьте маршрутизацию /api и защиту deployment.';
+    throw new CloudError(`AI-сервер недоступен (HTTP ${response.status}). ${hint}`, response.status);
   }
   if (!response.ok) {
     const parsed = z.object({ error: z.string(), code: z.string().optional() }).safeParse(result);

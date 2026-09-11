@@ -31,6 +31,28 @@ git push -u origin HEAD
 
 Vercel поддерживает Node.js/TypeScript-функции в `api/` и Node request/response handlers: [официальная документация](https://vercel.com/docs/functions/runtimes/node-js). Ограничения payload и времени определяются платформой: [Vercel Functions Limits](https://vercel.com/docs/functions/limitations). Здесь синхронное аудио ограничено 1 000 000 байт и 30 секундами из-за режима SpeechKit; base64 увеличивает тело JSON. Таймаут одного облачного запроса — до 55 секунд, анализ может сделать один повтор, поэтому функция должна допускать оба запроса. Большие записи отклоняются с `ASYNC_REQUIRED`, очередь не запущена: [план асинхронного режима](ASYNC_TRANSCRIPTION.md).
 
+## Диагностика API на Vercel
+
+Оба endpoint находятся в корневом `api/`: `/api/analyze` и `/api/transcribe`.
+Фронтенд обращается к ним на текущем домене, отдельный base URL не нужен.
+Vite proxy на порт 3001 используется только локально; в production работают Node.js Functions.
+Root Directory в настройках Vercel должен указывать на каталог с `package.json`, `api/` и `vercel.json`.
+Не добавляйте SPA-rewrite, перехватывающий `/api/*`: интерфейс использует hash-маршруты.
+
+`GET /api/analyze` и `GET /api/transcribe` должны возвращать HTTP 405 с JSON
+`{"error":"Используйте POST."}` без обращения к Yandex. HTTP 500 с
+`FUNCTION_INVOCATION_FAILED` означает падение функции, а не отсутствие API-маршрута.
+Относительные импорты серверного дерева используют `.js` для Node ESM;
+`npm run build` дополнительно проверяет их с `tsconfig.server.json` (NodeNext).
+Обоснование: [обязательные расширения Node ESM](https://nodejs.org/api/esm.html#mandatory-file-extensions).
+
+Локальный `.env` не переносится в Vercel. В Environment Variables для **Production**
+нужны `YANDEX_API_KEY` и, для анализа, `YANDEX_FOLDER_ID` либо `YANDEX_ANALYSIS_MODEL_URI`.
+Если задан `APP_ORIGIN`, он должен точно совпадать с origin сайта без завершающего `/`.
+После изменения переменных нужен новый deployment. Значения ключей не помещайте в логи,
+скриншоты, клиентские переменные `VITE_*` или Git. При отсутствии ключа исправно запущенный
+обработчик возвращает JSON с HTTP 503 и `NOT_CONFIGURED`.
+
 ## 3. GitHub Pages: статическое демо
 
 1. В GitHub откройте Settings → Pages → Source → GitHub Actions.

@@ -1,4 +1,4 @@
-import { newRequirement, SegmentSchema, type Segment, type Analysis } from '../domain/model';
+import { newRequirement, SegmentSchema, type Segment, type Analysis } from '../domain/model.js';
 export const MAX_TEXT = 180000;
 function timestamp(v: string) {
   const nums = v.replace(',', '.').split(':').map(Number);
