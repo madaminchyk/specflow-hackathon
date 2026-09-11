@@ -1,4 +1,6 @@
 export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
+export const AUDIO_UPLOAD_HINT =
+  'Аудио для реальной проверки: WAV или OggOpus до 30 секунд и 1 МБ. Для длинных записей используйте демо/готовую транскрипцию; асинхронная обработка в roadmap.';
 // Transient handoff from the home upload to the player; never serialized.
 export const sessionMedia = new Map<string, File>();
 export { SPEECHKIT_SYNC } from '../domain/transcription';
@@ -21,7 +23,11 @@ export function validateFile(file: Pick<File, 'name' | 'size' | 'type'>) {
     );
   if (!file.size) throw new Error('Файл пуст.');
   if (file.size > (isText ? MAX_TEXT_BYTES : MAX_MEDIA_BYTES))
-    throw new Error(isText ? 'Текстовый файл больше 512 КБ.' : 'Запись больше 100 МБ.');
+    throw new Error(
+      isText
+        ? 'Текстовый файл больше 512 КБ.'
+        : 'Запись слишком большая для локального вложения. ' + AUDIO_UPLOAD_HINT,
+    );
   if (
     file.type &&
     file.type !== 'application/octet-stream' &&

@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { Upload, FileText } from 'lucide-react';
 import { Dialog } from '../../components/Dialog';
-import { validateFile } from '../../services/files';
+import { validateFile, AUDIO_UPLOAD_HINT } from '../../services/files';
 import { parseTranscript, analyzeLocal } from '../../services/analysis';
 import type { Project } from '../../domain/model';
 export const NO_AI_MESSAGE =
-  'Для распознавания этой записи подключите AI-провайдер или используйте демо/готовую транскрипцию';
+  'Запись прикреплена. Для распознавания нажмите «AI-обработка». Поддерживаются WAV PCM mono или OggOpus mono до 30 секунд и 1 МБ';
 export function ImportDialog({
   project,
   onClose,
@@ -77,7 +77,8 @@ export function ImportDialog({
       >
         <Upload />
         <h3>Перетащите запись или транскрипцию</h3>
-        <p>Медиа до 100 МБ · TXT, MD, SRT, VTT до 512 КБ</p>
+        <p>{AUDIO_UPLOAD_HINT}</p>
+        <p className="muted">Готовая транскрипция: TXT, MD, SRT, VTT до 512 КБ.</p>
         <button disabled={busy} onClick={() => input.current?.click()}>
           Выбрать файл
         </button>

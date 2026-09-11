@@ -1505,6 +1505,14 @@
   }
 }
 @media print {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+  }
   .workspace {
     height: auto;
     overflow: visible;
@@ -1524,6 +1532,13 @@
       sans-serif;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    margin: 0;
+    overflow: visible;
+    border: 0;
+    background: white;
+    color: black;
+    orphans: 3;
+    widows: 3;
   }
   .dialog {
     display: none !important;

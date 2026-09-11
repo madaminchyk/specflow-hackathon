@@ -15,7 +15,7 @@ import { blankProject, type Project } from '../../domain/model';
 import { STORAGE_KEY } from '../../services/persistence';
 import { download } from '../../services/export';
 import { parseTranscript, analyzeLocal } from '../../services/analysis';
-import { validateFile, sessionMedia } from '../../services/files';
+import { validateFile, sessionMedia, AUDIO_UPLOAD_HINT } from '../../services/files';
 import { Dialog } from '../../components/Dialog';
 export function Home() {
   const navigate = useNavigate();
@@ -187,7 +187,8 @@ export function Home() {
         >
           <Upload />
           <h3>Начните с материалов своей встречи</h3>
-          <p>Перетащите запись до 100 МБ или транскрипцию TXT, MD, SRT, VTT до 512 КБ.</p>
+          <p>{AUDIO_UPLOAD_HINT}</p>
+          <p className="muted">Готовая транскрипция: TXT, MD, SRT, VTT до 512 КБ.</p>
           <button disabled={busy} onClick={() => input.current?.click()}>
             {busy ? 'Чтение…' : 'Выбрать файл встречи'}
           </button>

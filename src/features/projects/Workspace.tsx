@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
 import {
   AudioLines,
@@ -224,7 +225,7 @@ function WorkspaceContent({ initial }: { initial: Project }) {
       setP(next);
       setSelected(next.requirements[0]?.id || '');
       setUndo(null);
-      setNotice('AI-черновик сохранён. Проверьте источники.');
+      setNotice('AI обработка завершена. Черновик сохранён — проверьте источники.');
       setModal(null);
       setStage('Готово');
     } catch (e) {
@@ -254,6 +255,17 @@ function WorkspaceContent({ initial }: { initial: Project }) {
     } catch (e) {
       if ((e as Error).name !== 'AbortError')
         setError('Не удалось поделиться. Скачайте документ через экспорт.');
+    }
+  };
+  const printDocument = () => {
+    // Remove the modal/top layer before printing while preserving the user gesture.
+    flushSync(() => setModal(null));
+    try {
+      window.print();
+    } catch {
+      setError(
+        'Не удалось открыть печать. Откройте сайт в Edge или Chrome и нажмите Ctrl+P → «Сохранить как PDF».',
+      );
     }
   };
   const exportFile = async (format: string) => {
@@ -295,6 +307,9 @@ function WorkspaceContent({ initial }: { initial: Project }) {
             <span className="mode-label">
               {p.mode === 'demo' ? 'ДЕМО' : p.mode === 'ai' ? 'AI-ЧЕРНОВИК' : 'ЛОКАЛЬНО'}
             </span>
+            {p.mode === 'ai' && p.processingStatus === 'ready' && (
+              <span className="mode-label">AI обработка завершена</span>
+            )}
           </span>
         </div>
         <div className="header-actions">
@@ -639,7 +654,20 @@ function WorkspaceContent({ initial }: { initial: Project }) {
                     </div>
                   </article>
                 ))}
-                {!p.scenarios.length && <div className="empty">Сценарии ещё не выделены.</div>}
+                {!p.scenarios.length && (
+                  <div className="empty">
+                    <strong>
+                      {p.mode === 'ai'
+                        ? 'Модель не сформировала сценарии'
+                        : 'Сценарии пока не выделены'}
+                    </strong>
+                    <p>
+                      Для сценария нужны роль, цель и последовательность действий. Уточните эти
+                      шаги в транскрипции и повторите анализ. Уже полученные требования и роли
+                      доступны в соседних разделах.
+                    </p>
+                  </div>
+                )}
               </>
             )}
             {tab === 'conflicts' && (
@@ -832,11 +860,16 @@ function WorkspaceContent({ initial }: { initial: Project }) {
               <FileText />
               DOCX <small>Редактируемый документ Word</small>
             </button>
-            <button disabled={!!busy} onClick={() => window.print()}>
+            <button disabled={!!busy} onClick={printDocument}>
               <Download />
-              Печать / PDF <small>Все разделы документа</small>
+              Печать / сохранить как PDF <small>Все разделы документа</small>
             </button>
           </div>
+          <p className="muted">
+            В окне печати выберите «Сохранить как PDF» или «Microsoft Print to PDF». Если встроенный
+            браузер не открывает печать, откройте этот же адрес в Edge или Chrome, импортируйте
+            материалы и используйте Ctrl+P. Локальные проекты хранятся отдельно в каждом браузере.
+          </p>
           {error && (
             <p role="alert" className="error">
               {error}
