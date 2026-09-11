@@ -133,6 +133,37 @@ export type YandexConfig = {
 export const SPEECHKIT_ENDPOINT = 'https://stt.api.cloud.yandex.net/speech/v1/stt:recognize';
 export const ANALYSIS_ENDPOINT = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion';
 
+// Classify upstream validation errors without exposing their text, credentials or input.
+async function analysisRequestError(response: Response): Promise<ProviderError> {
+  let message = '';
+  try {
+    const body = await response.json();
+    const detail = body?.message ?? body?.error?.message ?? body?.error;
+    if (typeof detail === 'string') message = detail.toLowerCase();
+  } catch {
+    // Some gateways return plain text. Never forward it to the browser.
+  }
+  let hint =
+    'Проверьте YANDEX_ANALYSIS_MODEL_URI, YANDEX_FOLDER_ID и параметры модели в Production env Vercel.';
+  if (/folder|catalog|каталог/.test(message))
+    hint =
+      'Проверьте YANDEX_FOLDER_ID: нужен ID каталога Yandex Cloud, не ID облака или сервисного аккаунта. Каталог в YANDEX_ANALYSIS_MODEL_URI должен совпадать с ним.';
+  else if (/max.?tokens|token.?limit|context|tokens|токен/.test(message))
+    hint =
+      'Модель отклонила лимит токенов или контекст. Проверьте YANDEX_ANALYSIS_MAX_TOKENS и объём транскрипции для выбранной модели.';
+  else if (/json.?schema|json.?object|response.?format|schema/.test(message))
+    hint =
+      'Модель отклонила структурированный JSON-ответ. Проверьте поддержку jsonSchema у модели из YANDEX_ANALYSIS_MODEL_URI.';
+  else if (/model|uri|модел/.test(message))
+    hint =
+      'Проверьте YANDEX_ANALYSIS_MODEL_URI: нужен нативный URI gpt://<ID каталога>/yandexgpt/latest, а не URL, имя модели или ID сервисного аккаунта.';
+  return new ProviderError(
+    422,
+    `YandexGPT отклонил запрос анализа (HTTP ${response.status}). ${hint} После изменения env выполните Redeploy; транскрипцию распознавать повторно не нужно.`,
+    'INVALID_PROVIDER_RESPONSE',
+  );
+}
+
 export class YandexProvider implements TranscriptionProvider, RequirementsExtractionProvider {
   readonly capabilities = { sync: SPEECHKIT_SYNC, async: false } as const;
   constructor(
@@ -186,6 +217,8 @@ export class YandexProvider implements TranscriptionProvider, RequirementsExtrac
           'Yandex отклонил размер записи. Для длинного файла нужна асинхронная обработка; добавьте готовую транскрипцию.',
           'ASYNC_REQUIRED',
         );
+      if (url === ANALYSIS_ENDPOINT && [400, 404, 422].includes(response.status))
+        throw await analysisRequestError(response);
       if (response.status === 400 || response.status === 422)
         throw new ProviderError(
           422,
@@ -264,6 +297,13 @@ export class YandexProvider implements TranscriptionProvider, RequirementsExtrac
         'Для анализа укажите YANDEX_FOLDER_ID или YANDEX_ANALYSIS_MODEL_URI на сервере. Распознавание SpeechKit доступно с одним API-ключом.',
         'NOT_CONFIGURED',
       );
+    const modelFolder = /^gpt:\/\/([^/]+)\/.+$/.exec(modelUri)?.[1];
+    if (!modelFolder || (this.config.folderId && modelFolder !== this.config.folderId))
+      throw new ProviderError(
+        503,
+        'Настройки анализа не согласованы: каталог в YANDEX_ANALYSIS_MODEL_URI должен совпадать с YANDEX_FOLDER_ID. Укажите один каталог или оставьте URI пустым для модели по умолчанию.',
+        'NOT_CONFIGURED',
+      );
     for (let attempt = 0; attempt < 2; attempt++) {
       let raw: unknown;
       try {
@@ -273,7 +313,7 @@ export class YandexProvider implements TranscriptionProvider, RequirementsExtrac
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(this.config.folderId ? { 'x-folder-id': this.config.folderId } : {}),
+              'x-folder-id': modelFolder,
             },
             body: JSON.stringify({
               modelUri,
