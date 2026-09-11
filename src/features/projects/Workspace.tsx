@@ -36,7 +36,7 @@ import { ImportDialog, NO_AI_MESSAGE } from '../upload/ImportDialog';
 import { Dialog } from '../../components/Dialog';
 import { download, exportMarkdown, exportJSON, exportDocx } from '../../services/export';
 import { aiAnalyze, aiTranscribe, CloudError } from '../../services/ai';
-import { sessionMedia } from '../../services/files';
+import { sessionMedia, AUDIO_UPLOAD_HINT } from '../../services/files';
 import { registerSpecTool } from '../../services/webmcp';
 type Tab = 'requirements' | 'scenarios' | 'roles' | 'questions' | 'conflicts';
 export function Workspace() {
@@ -662,9 +662,9 @@ function WorkspaceContent({ initial }: { initial: Project }) {
                         : 'Сценарии пока не выделены'}
                     </strong>
                     <p>
-                      Для сценария нужны роль, цель и последовательность действий. Уточните эти
-                      шаги в транскрипции и повторите анализ. Уже полученные требования и роли
-                      доступны в соседних разделах.
+                      Для сценария нужны роль, цель и последовательность действий. Уточните эти шаги
+                      в транскрипции и повторите анализ. Уже полученные требования и роли доступны в
+                      соседних разделах.
                     </p>
                   </div>
                 )}
@@ -892,12 +892,13 @@ function WorkspaceContent({ initial }: { initial: Project }) {
           </p>
           <p className="muted">
             Текущие извлечённые элементы заменятся результатом анализа. Для сохранения предыдущих
-            правок сначала экспортируйте проект. Распознавание: WAV PCM 16-bit mono или OggOpus
-            mono, до 1 МБ и 30 секунд. Длительность проверяется на сервере.
+            правок сначала экспортируйте проект.
           </p>
-          <p className="notice">
-            Длинные записи требуют асинхронной обработки SpeechKit. Она пока не подключена: файлы не
-            ставятся в очередь и не обрабатываются в фоне. Можно добавить готовую транскрипцию.
+          <p className="notice">{AUDIO_UPLOAD_HINT}</p>
+          <p className="muted">
+            Поддерживаемый формат: WAV PCM 16-bit mono или OggOpus mono. Ограничение относится к
+            текущему MVP. Для встреч на 30–90 минут в roadmap — Object Storage, очередь задач,
+            фоновый worker, статусы и уведомления.
           </p>
           <p className="muted">
             SpeechKit v1 возвращает текст без таймкодов слов и разделения говорящих. Время такого

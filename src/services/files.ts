@@ -1,6 +1,6 @@
 export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
 export const AUDIO_UPLOAD_HINT =
-  'Аудио для реальной проверки: WAV или OggOpus до 30 секунд и 1 МБ. Для длинных записей используйте демо/готовую транскрипцию; асинхронная обработка в roadmap.';
+  'Для демонстрации MVP используйте короткий WAV/OggOpus до 30 секунд и 1 МБ. Длинные встречи поддержим через асинхронную очередь в следующей версии.';
 // Transient handoff from the home upload to the player; never serialized.
 export const sessionMedia = new Map<string, File>();
 export { SPEECHKIT_SYNC } from '../domain/transcription';

@@ -405,6 +405,37 @@ button svg {
     animation: none !important;
   }
 }
+.demo-brief {
+  margin: 32px 0;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid #dedff0;
+  border-radius: 20px;
+  background: #fff;
+}
+.demo-brief h2 {
+  margin: 8px 0 12px;
+}
+.demo-brief p {
+  line-height: 1.65;
+}
+.demo-brief-lead {
+  color: #4545b5;
+  font-weight: 600;
+}
+.demo-brief-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 16px 32px;
+  margin: 20px 0;
+}
+.demo-brief-columns ul {
+  padding-left: 20px;
+  list-style: disc;
+}
+.demo-brief-columns li {
+  margin: 8px 0;
+  line-height: 1.5;
+}
 @media print {
   button,
   nav,

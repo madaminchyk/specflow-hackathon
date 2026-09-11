@@ -78,6 +78,9 @@ export function ImportDialog({
         <Upload />
         <h3>Перетащите запись или транскрипцию</h3>
         <p>{AUDIO_UPLOAD_HINT}</p>
+        <p className="muted">
+          WAV PCM 16-bit mono или OggOpus mono. Вся короткая запись обрабатывается реальным AI.
+        </p>
         <p className="muted">Готовая транскрипция: TXT, MD, SRT, VTT до 512 КБ.</p>
         <button disabled={busy} onClick={() => input.current?.click()}>
           Выбрать файл
